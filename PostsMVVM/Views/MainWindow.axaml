@@ -1,0 +1,70 @@
+<!-- ReSharper disable all -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PostsMVVM.ViewModels"
+        xmlns:m="using:PostsMVVM.Models"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+        x:Class="PostsMVVM.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Posts">
+
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="2*,Auto,1*">
+        <!-- Top bar: filter + status -->
+        <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Horizontal"
+                    Spacing="12" Margin="12,8">
+            <TextBox Width="300" PlaceholderText="Filter by title or body..."
+                     Text="{Binding Filter, Mode=TwoWay}" />
+            <TextBlock VerticalAlignment="Center" Text="Loading..."
+                       IsVisible="{Binding IsLoading}" />
+            <TextBlock VerticalAlignment="Center" Foreground="Red"
+                       Text="{Binding Error}"
+                       IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+
+        <!-- Table -->
+        <DataGrid Grid.Row="1" Grid.Column="0"
+                  ItemsSource="{Binding Posts}"
+                  SelectedItem="{Binding SelectedPost, Mode=TwoWay}"
+                  IsReadOnly="True"
+                  GridLinesVisibility="All"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Id"     Binding="{Binding Id}"     Width="60" />
+                <DataGridTextColumn Header="UserId" Binding="{Binding UserId}" Width="90" />
+                <DataGridTextColumn Header="Title"  Binding="{Binding Title}"  Width="2*" />
+                <DataGridTextColumn Header="Body"   Binding="{Binding Body}"   Width="4*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <GridSplitter Grid.Row="1" Grid.Column="1" Width="4" Background="#22000000" />
+
+        <!-- Detail pane -->
+        <Border Grid.Row="1" Grid.Column="2" Padding="16"
+                IsVisible="{Binding SelectedPost, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <ScrollViewer DataContext="{Binding SelectedPost}">
+                <StackPanel Spacing="8" x:DataType="m:Post">
+                    <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold"
+                               TextWrapping="Wrap" />
+                    <TextBlock Opacity="0.7">
+                        <Run Text="Post #" /><Run Text="{Binding Id}" />
+                        <Run Text=" · user " /><Run Text="{Binding UserId}" />
+                    </TextBlock>
+                    <TextBlock Text="{Binding Body}" TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Grid.Row="1" Grid.Column="2" Margin="16" Opacity="0.5"
+                   Text="Select a post to view details"
+                   IsVisible="{Binding SelectedPost, Converter={x:Static ObjectConverters.IsNull}}" />
+    </Grid>
+
+</Window>
