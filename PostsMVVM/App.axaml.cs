@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -13,8 +15,13 @@ public partial class App : Application
 {
     public override void Initialize()
     {
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log("UnhandledException", e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException     += (_, e) => { Log("UnobservedTaskException", e.Exception); e.SetObserved(); };
         AvaloniaXamlLoader.Load(this);
     }
+
+    private static void Log(string source, Exception? ex) =>
+        Debug.WriteLine($"[{source}] {ex}");
 
     public override void OnFrameworkInitializationCompleted()
     {

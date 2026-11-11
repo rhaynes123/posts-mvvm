@@ -1,3 +1,4 @@
+using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -15,6 +16,16 @@ public class PostsService
 
     public PostsService(HttpClient http) => _http = http;
 
-    public Task<Post[]?> GetAllAsync(CancellationToken ct = default) =>
-        _http.GetFromJsonAsync<Post[]>("posts", JsonOpts, ct);
+    public async Task<Result<Post[]>> GetAllAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return new Result<Post[]>(
+                new Success<Post[]>(await _http.GetFromJsonAsync<Post[]>("posts", JsonOpts, ct) ?? []));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            return new Result<Post[]>(new Error(ex));
+        }
+    }
 }

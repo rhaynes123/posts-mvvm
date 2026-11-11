@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using PostsMVVM.Models;
@@ -29,19 +31,24 @@ public partial class MainViewModel : ViewModelBase
     {
         _posts = posts;
         _ = LoadAsync();
-    }
+    }   
 
     private async Task LoadAsync()
     {
         IsLoading = true;
         try
         {
-            var posts = await _posts.GetAllAsync();
-            if (posts is null) return;
-            _all.AddRange(posts);
-            ApplyFilter();
+            switch (await _posts.GetAllAsync())
+            {
+                case Success<Post[]>(var posts):
+                    _all.AddRange(posts);
+                    ApplyFilter();
+                    break;
+                case Error(var ex):
+                    Error = ex.Describe();
+                    break;
+            }
         }
-        catch (HttpRequestException ex) { Error = ex.Message; }
         finally { IsLoading = false; }
     }
 
@@ -58,5 +65,25 @@ public partial class MainViewModel : ViewModelBase
 
         Posts.Clear();
         foreach (var p in result) Posts.Add(p);
+    }
+}
+
+public static class ExceptionExtensions
+{
+    extension(Exception ex)
+    {
+        public string Describe() => ex switch
+        {
+            TaskCanceledException                                                      => "Request timed out. Check your connection and retry.",
+            JsonException                                                              => "Server returned data we couldn't read.",
+            HttpRequestException { StatusCode: HttpStatusCode.NotFound }               => "Posts endpoint not found (404).",
+            HttpRequestException { StatusCode: HttpStatusCode.Unauthorized }           => "You need to sign in (401).",
+            HttpRequestException { StatusCode: HttpStatusCode.Forbidden }              => "You don't have access (403).",
+            HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests }        => "Rate limited — slow down and try again (429).",
+            HttpRequestException { StatusCode: >= HttpStatusCode.InternalServerError } => "Server is having a bad day. Try again shortly.",
+            HttpRequestException { StatusCode: null }                                  => "Network unreachable.",
+            HttpRequestException h                                                     => $"HTTP {(int)h.StatusCode!}: {h.Message}",
+            _                                                                          => ex.Message,
+        };
     }
 }
